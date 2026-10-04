@@ -1,4 +1,20 @@
-venv/ 
-__pycache__/ 
-.env 
-*.pyc 
+# Ambientes virtuais
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Segredos e configurações locais
+.env
+
+# Banco de dados local
+*.db
+*.sqlite3
+
+# Frontend
+node_modules/
+
+# Editor
+.vscode/
