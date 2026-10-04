@@ -74,3 +74,18 @@ def excluir_livro(id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"mensagem": "Livro excluído com sucesso"}
+
+@router.get("/resumo")
+def obter_resumo_livros(db: Session = Depends(get_db)):
+    total_livros = db.query(Livro).count()
+    livros_lidos = db.query(Livro).filter(Livro.lido == True).count()
+    livros_pendentes = total_livros - livros_lidos
+    
+    percentual_lido = round((livros_lidos / total_livros * 100), 2) if total_livros > 0 else 0.0
+
+    return {
+        "total_livros": total_livros,
+        "livros_lidos": livros_lidos,
+        "livros_pendentes": livros_pendentes,
+        "percentual_concluido": f"{percentual_lido}%"
+    }
