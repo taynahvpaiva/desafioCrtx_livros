@@ -62,3 +62,15 @@ def listar_livros(
         query = query.filter(Livro.autor.ilike(f"%{autor}%"))
 
     return query.all()
+
+@router.delete("/{id}")
+def excluir_livro(id: int, db: Session = Depends(get_db)):
+    livro_db = db.query(Livro).filter(Livro.id == id).first()
+
+    if livro_db is None:
+        raise HTTPException(status_code=404, detail="Livro não encontrado")
+
+    db.delete(livro_db)
+    db.commit()
+
+    return {"mensagem": "Livro excluído com sucesso"}
