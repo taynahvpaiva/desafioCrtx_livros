@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class LivroCreate(BaseModel):
     titulo: str
@@ -13,3 +13,13 @@ class LivroUpdate(BaseModel):
     genero: str
     ano: int
     lido: bool
+
+class LivroResponse(BaseModel):
+    id: int
+    titulo: str
+    autor: str
+    genero: str
+    ano: int
+    lido: bool
+
+    model_config = ConfigDict(from_attributes=True)

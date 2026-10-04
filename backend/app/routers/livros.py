@@ -2,7 +2,7 @@ from fastapi import APIRouter,Depends,HTTPException
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.livro import Livro
-from app.schemas.livro import LivroCreate,LivroUpdate
+from app.schemas.livro import LivroCreate,LivroUpdate,LivroResponse
 
 router = APIRouter(prefix="/livros",tags=["Livros"])
 
@@ -47,7 +47,7 @@ def atualizar_livro(id: int,livro: LivroUpdate,db: Session = Depends(get_db)):
 
     return livro_db
 
-@router.get("/")
+@router.get("/", response_model=list[LivroResponse])
 def listar_livros(
     genero: str | None = None,
     autor: str | None = None,
@@ -74,3 +74,12 @@ def excluir_livro(id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"mensagem": "Livro excluído com sucesso"}
+
+@router.get("/{id}", response_model=LivroResponse)
+def buscar_livro(id: int, db: Session = Depends(get_db)):
+    livro_db = db.query(Livro).filter(Livro.id == id).first()
+
+    if livro_db is None:
+        raise HTTPException(status_code=404, detail="Livro não encontrado")
+
+    return livro_db
