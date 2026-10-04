@@ -46,3 +46,19 @@ def atualizar_livro(id: int,livro: LivroUpdate,db: Session = Depends(get_db)):
     db.refresh(livro_db)
 
     return livro_db
+
+@router.get("/")
+def listar_livros(
+    genero: str | None = None,
+    autor: str | None = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(Livro)
+
+    if genero:
+        query = query.filter(Livro.genero.ilike(f"%{genero}%"))
+
+    if autor:
+        query = query.filter(Livro.autor.ilike(f"%{autor}%"))
+
+    return query.all()
