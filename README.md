@@ -33,3 +33,5 @@ Acesse a documentação no navegador: http://127.0.0.1:8000/docs
 - PUT /livros/{id} - Atualiza um livro
 - DELETE /livros/{id} - Remove um livro
 - GET /livros/resumo - Exibe o resumo e estatísticas do acervo
+
+##Prototipação no figma: https://www.figma.com/design/ZHcSRX4VyhmgUqnN4452JK/Sem-t%C3%ADtulo?node-id=2-534&t=HjfnUJPkUnEEjF9d-1
