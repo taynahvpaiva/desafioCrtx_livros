@@ -1,121 +1,76 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react'
+import { ExtraFeature } from './components/ExtraFeature'
+import { request } from './services/api'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [livros, setLivros] = useState([])
+  const [termoPesquisa, setTermoPesquisa] = useState('')
+  const [erro, setErro] = useState(null)
+
+  useEffect(() => {
+    async function carregarLivros() {
+      try {
+        const dados = await request('/livros/')
+        setLivros(dados)
+        setErro(null)
+      } catch (err) {
+        setErro(err.message)
+      }
+    }
+    carregarLivros()
+  }, [])
+
+  const handleSearch = (termo) => {
+    setTermoPesquisa(termo)
+  }
+
+  const livrosFiltrados = livros.filter(livro => {
+    const titulo = livro.titulo || livro.title || ''
+    const autor = livro.autor || livro.author || ''
+    const termo = termoPesquisa.toLowerCase()
+    return titulo.toLowerCase().includes(termo) || autor.toLowerCase().includes(termo)
+  })
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '600px', margin: '0 auto' }}>
+      <h1>Gerenciador de Livros</h1>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {erro && (
+        <div style={{ padding: '10px', backgroundColor: '#ffebee', color: '#c62828', marginBottom: '15px', borderRadius: '4px' }}>
+          <strong>Erro:</strong> {erro}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      )}
+      
+      <ExtraFeature onSearch={handleSearch} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <h2>Lista de Livros</h2>
+      
+      {livros.length === 0 && !erro ? (
+        <p>A carregar livros ou nenhum registo encontrado...</p>
+      ) : (
+        <ul style={{ listStyleType: 'none', padding: 0 }}>
+          {livrosFiltrados.length > 0 ? (
+            livrosFiltrados.map((livro, index) => (
+              <li 
+                key={livro.id || index} 
+                style={{ 
+                  padding: '10px', 
+                  borderBottom: '1px solid #ddd', 
+                  marginBottom: '8px',
+                  backgroundColor: '#f9f9f9',
+                  borderRadius: '4px'
+                }}
+              >
+                <strong>{livro.titulo || livro.title}</strong> 
+                <span style={{ color: '#555' }}> — {livro.autor || livro.author}</span>
+              </li>
+            ))
+          ) : (
+            <p>Nenhum livro corresponde à tua pesquisa.</p>
+          )}
+        </ul>
+      )}
+    </div>
   )
 }
 
