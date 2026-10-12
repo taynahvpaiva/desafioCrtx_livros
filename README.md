@@ -25,6 +25,23 @@
 
 Acesse a documentação no navegador: http://127.0.0.1:8000/docs
 
+## Como rodar o Frontend (React / Vite)
+
+1. Entre na pasta do frontend:
+   cd frontend
+
+2. Instale as dependências:
+   npm install
+
+3. Configure as variáveis de ambiente:
+   Crie o arquivo `.env` com base no `.env.example`:
+   cp .env.example .env
+
+4. Inicie o servidor de desenvolvimento:
+   npm run dev
+
+Acesse a aplicação no navegador: http://localhost:5173/
+
 ## Endpoints
 
 - POST /livros/ - Cadastra um livro
@@ -36,3 +53,4 @@ Acesse a documentação no navegador: http://127.0.0.1:8000/docs
 
 ## Prototipação no figma: 
 https://www.figma.com/design/ZHcSRX4VyhmgUqnN4452JK/Sem-t%C3%ADtulo?node-id=2-534&t=HjfnUJPkUnEEjF9d-1
+
