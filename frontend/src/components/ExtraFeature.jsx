@@ -5,20 +5,22 @@ export function ExtraFeature({ onSearch }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSearch(searchTerm);
+    if (onSearch) {
+      onSearch(searchTerm);
+    }
   };
 
   return (
-    <div className="search-filter-container">
-      <form onSubmit={handleSubmit} className="search-box">
+    <div style={{ padding: '20px' }}>
+      <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Procurar título..."
+          placeholder="Procurar..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="input-field"
+          style={{ padding: '8px', marginRight: '8px' }}
         />
-        <button type="submit" className="btn-search">
+        <button type="submit" style={{ padding: '8px 16px' }}>
           Pesquisar
         </button>
       </form>
