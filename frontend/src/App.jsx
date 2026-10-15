@@ -1,77 +1,123 @@
-import React, { useState, useEffect } from 'react'
-import { ExtraFeature } from './components/ExtraFeature'
-import { request } from './services/api'
+import { useState } from "react";
+import { ExtraFeature } from "./components/ExtraFeature";
+import { BookForm } from "./components/BookForm";
+import { useLivros } from "./hooks/useLivros";
 
 function App() {
-  const [livros, setLivros] = useState([])
-  const [termoPesquisa, setTermoPesquisa] = useState('')
-  const [erro, setErro] = useState(null)
+  const {
+    livros,
+    resumo,
+    carregando,
+    erro,
+    sucesso,
+    vazio,
+    adicionar,
+    editar,
+    remover,
+  } = useLivros();
 
-  useEffect(() => {
-    async function carregarLivros() {
-      try {
-        const dados = await request('/livros/')
-        setLivros(dados)
-        setErro(null)
-      } catch (err) {
-        setErro(err.message)
-      }
-    }
-    carregarLivros()
-  }, [])
+  const [termoPesquisa, setTermoPesquisa] = useState("");
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [livroEditando, setLivroEditando] = useState(null);
 
-  const handleSearch = (termo) => {
-    setTermoPesquisa(termo)
+  const livrosFiltrados = livros.filter((livro) => {
+    const termo = termoPesquisa.toLowerCase();
+    return (
+      livro.titulo.toLowerCase().includes(termo) ||
+      livro.autor.toLowerCase().includes(termo)
+    );
+  });
+
+  function abrirNovo() {
+    setLivroEditando(null);
+    setMostrarForm(true);
   }
 
-  const livrosFiltrados = livros.filter(livro => {
-    const titulo = livro.titulo || livro.title || ''
-    const autor = livro.autor || livro.author || ''
-    const termo = termoPesquisa.toLowerCase()
-    return titulo.toLowerCase().includes(termo) || autor.toLowerCase().includes(termo)
-  })
+  function abrirEdicao(livro) {
+    setLivroEditando(livro);
+    setMostrarForm(true);
+  }
+
+  function fecharForm() {
+    setMostrarForm(false);
+    setLivroEditando(null);
+  }
+
+  async function salvar(dados) {
+    const ok = livroEditando
+      ? await editar(livroEditando.id, dados)
+      : await adicionar(dados);
+    if (ok) fecharForm();
+  }
+
+  async function excluir(livro) {
+    if (window.confirm(`Remove "${livro.titulo}"?`)) {
+      await remover(livro.id);
+    }
+  }
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '600px', margin: '0 auto' }}>
-      <h1>Gerenciador de Livros</h1>
+    <div
+      style={{
+        padding: "20px",
+        fontFamily: "Arial, sans-serif",
+        maxWidth: "600px",
+        margin: "0 auto",
+      }}
+    >
+      <h1>Personal Library</h1>
 
-      {erro && (
-        <div style={{ padding: '10px', backgroundColor: '#ffebee', color: '#c62828', marginBottom: '15px', borderRadius: '4px' }}>
-          <strong>Erro:</strong> {erro}
-        </div>
+      {resumo && (
+        <p>
+          Total Books: {resumo.total_livros} | Read Books:{" "}
+          {resumo.livros_lidos} | Books to Read: {resumo.livros_pendentes}
+        </p>
       )}
-      
-      <ExtraFeature onSearch={handleSearch} />
 
-      <h2>Lista de Livros</h2>
-      
-      {livros.length === 0 && !erro ? (
-        <p>A carregar livros ou nenhum registo encontrado...</p>
-      ) : (
-        <ul style={{ listStyleType: 'none', padding: 0 }}>
-          {livrosFiltrados.length > 0 ? (
-            livrosFiltrados.map((livro, index) => (
-              <li 
-                key={livro.id || index} 
-                style={{ 
-                  padding: '10px', 
-                  borderBottom: '1px solid #ddd', 
-                  marginBottom: '8px',
-                  backgroundColor: '#f9f9f9',
-                  borderRadius: '4px'
-                }}
-              >
-                <strong>{livro.titulo || livro.title}</strong> 
-                <span style={{ color: '#555' }}> — {livro.autor || livro.author}</span>
-              </li>
-            ))
-          ) : (
-            <p>Nenhum livro corresponde à tua pesquisa.</p>
-          )}
-        </ul>
+      {erro && <p style={{ color: "red" }}>Error: {erro}</p>}
+      {sucesso && <p style={{ color: "green" }}>{sucesso}</p>}
+
+      <button onClick={abrirNovo}>+ New Book</button>
+
+      {mostrarForm && (
+        <BookForm
+          key={livroEditando ? livroEditando.id : "novo"}
+          livroInicial={livroEditando}
+          onSubmit={salvar}
+          onCancel={fecharForm}
+        />
       )}
+
+      <ExtraFeature onSearch={setTermoPesquisa} />
+
+      <h2>Book List</h2>
+
+      {carregando && <p>Loading...</p>}
+      {vazio && <p>No books found yet. Register your first book.</p>}
+
+      {!carregando && !vazio && livrosFiltrados.length === 0 && (
+        <p>No books match your search.</p>
+      )}
+
+      <ul style={{ listStyleType: "none", padding: 0 }}>
+        {livrosFiltrados.map((livro) => (
+          <li
+            key={livro.id}
+            style={{
+              padding: "10px",
+              marginBottom: "8px",
+              borderBottom: "1px solid #ddd",
+            }}
+          >
+            <strong>{livro.titulo}</strong> — {livro.autor} ({livro.ano}) |{" "}
+            {livro.genero} | {livro.lido ? "Read" : "To Read"}{" "}
+            <button onClick={() => abrirEdicao(livro)}>Edit</button>{" "}
+            <button onClick={() => excluir(livro)}>Remove</button>
+          </li>
+        ))}
+      </ul>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
