@@ -36,62 +36,79 @@ export function BookForm({ livroInicial = null, onSubmit, onCancel }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3>{livroInicial ? "Edit Book" : "Add New Book"}</h3>
+    <div className="modal-overlay">
+      <form className="modal" onSubmit={handleSubmit}>
+        <h3>{livroInicial ? "Edit Book" : "Add New Book"}</h3>
 
-      <div>
-        <label>
-          Title
-          <input name="titulo" value={form.titulo} onChange={handleChange} />
-        </label>
-        {erros.titulo && <p style={{ color: "red" }}>{erros.titulo}</p>}
-      </div>
-
-      <div>
-        <label>
-          Author
-          <input name="autor" value={form.autor} onChange={handleChange} />
-        </label>
-        {erros.autor && <p style={{ color: "red" }}>{erros.autor}</p>}
-      </div>
-
-      <div>
-        <label>
-          Year
+        <div className="field">
+          <label htmlFor="titulo">Title</label>
           <input
-            name="ano"
+            id="titulo"
+            type="text"
+            name="titulo"
+            value={form.titulo}
+            onChange={handleChange}
+          />
+          {erros.titulo && <p className="field-error">{erros.titulo}</p>}
+        </div>
+
+        <div className="field">
+          <label htmlFor="autor">Author</label>
+          <input
+            id="autor"
+            type="text"
+            name="autor"
+            value={form.autor}
+            onChange={handleChange}
+          />
+          {erros.autor && <p className="field-error">{erros.autor}</p>}
+        </div>
+
+        <div className="field">
+          <label htmlFor="ano">Publication Year</label>
+          <input
+            id="ano"
             type="number"
+            name="ano"
             value={form.ano}
             onChange={handleChange}
           />
-        </label>
-        {erros.ano && <p style={{ color: "red" }}>{erros.ano}</p>}
-      </div>
+          {erros.ano && <p className="field-error">{erros.ano}</p>}
+        </div>
 
-      <div>
-        <label>
-          Genre
-          <input name="genero" value={form.genero} onChange={handleChange} />
-        </label>
-        {erros.genero && <p style={{ color: "red" }}>{erros.genero}</p>}
-      </div>
-
-      <div>
-        <label>
+        <div className="field">
+          <label htmlFor="genero">Genre</label>
           <input
-            name="lido"
-            type="checkbox"
-            checked={form.lido}
+            id="genero"
+            type="text"
+            name="genero"
+            value={form.genero}
             onChange={handleChange}
           />
-          Have you read it?
-        </label>
-      </div>
+          {erros.genero && <p className="field-error">{erros.genero}</p>}
+        </div>
 
-      <button type="button" onClick={onCancel}>
-        Cancel
-      </button>
-      <button type="submit">Save Book</button>
-    </form>
+        <div className="field">
+          <label>
+            <input
+              name="lido"
+              type="checkbox"
+              checked={form.lido}
+              onChange={handleChange}
+            />{" "}
+            Have you read it?
+          </label>
+        </div>
+
+        <div className="modal-actions">
+          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="submit" className="btn btn-primary">
+            Save Book
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

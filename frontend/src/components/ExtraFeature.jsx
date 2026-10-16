@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 export function ExtraFeature({ onSearch }) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -11,17 +11,16 @@ export function ExtraFeature({ onSearch }) {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div className="search-bar">
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Procurar..."
+          placeholder="Search title or author..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ padding: '8px', marginRight: '8px' }}
         />
-        <button type="submit" style={{ padding: '8px 16px' }}>
-          Pesquisar
+        <button type="submit" className="btn btn-primary">
+          Search
         </button>
       </form>
     </div>

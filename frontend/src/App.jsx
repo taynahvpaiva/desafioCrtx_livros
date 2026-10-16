@@ -57,27 +57,77 @@ function App() {
   }
 
   return (
-    <div
-      style={{
-        padding: "20px",
-        fontFamily: "Arial, sans-serif",
-        maxWidth: "600px",
-        margin: "0 auto",
-      }}
-    >
-      <h1>Personal Library</h1>
+    <div className="app">
+      <header className="header">
+        <h1>Personal Library</h1>
+        <button className="btn btn-primary" onClick={abrirNovo}>
+          + New Book
+        </button>
+      </header>
 
       {resumo && (
-        <p>
-          Total Books: {resumo.total_livros} | Read Books:{" "}
-          {resumo.livros_lidos} | Books to Read: {resumo.livros_pendentes}
-        </p>
+        <section className="metrics">
+          <div className="metric-card">
+            <strong>{resumo.total_livros}</strong>
+            Total Books
+          </div>
+          <div className="metric-card">
+            <strong>{resumo.livros_lidos}</strong>
+            Read Books
+          </div>
+          <div className="metric-card">
+            <strong>{resumo.livros_pendentes}</strong>
+            Books to Read
+          </div>
+        </section>
       )}
 
-      {erro && <p style={{ color: "red" }}>Error: {erro}</p>}
-      {sucesso && <p style={{ color: "green" }}>{sucesso}</p>}
+      {erro && <div className="message message-error">{erro}</div>}
+      {sucesso && <div className="message message-success">{sucesso}</div>}
 
-      <button onClick={abrirNovo}>+ New Book</button>
+      <ExtraFeature onSearch={setTermoPesquisa} />
+
+      {carregando && <p>Loading...</p>}
+
+      {vazio && (
+        <div className="empty">
+          <p>No books found yet. Register your first book.</p>
+        </div>
+      )}
+
+      {!carregando && !vazio && livrosFiltrados.length === 0 && (
+        <div className="empty">
+          <p>No books match your search.</p>
+        </div>
+      )}
+
+      <ul className="books-grid">
+        {livrosFiltrados.map((livro) => (
+          <li key={livro.id} className="book-card">
+            <h3>{livro.titulo}</h3>
+            <p>{livro.autor}</p>
+            <p>
+              {livro.genero} · {livro.ano}
+            </p>
+            <span
+              className={`badge ${livro.lido ? "badge-read" : "badge-toread"}`}
+            >
+              {livro.lido ? "Read" : "To Read"}
+            </span>
+            <div className="card-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => abrirEdicao(livro)}
+              >
+                ✏️ Edit
+              </button>
+              <button className="btn btn-remove" onClick={() => excluir(livro)}>
+                🗑️ Remove
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
 
       {mostrarForm && (
         <BookForm
@@ -87,35 +137,6 @@ function App() {
           onCancel={fecharForm}
         />
       )}
-
-      <ExtraFeature onSearch={setTermoPesquisa} />
-
-      <h2>Book List</h2>
-
-      {carregando && <p>Loading...</p>}
-      {vazio && <p>No books found yet. Register your first book.</p>}
-
-      {!carregando && !vazio && livrosFiltrados.length === 0 && (
-        <p>No books match your search.</p>
-      )}
-
-      <ul style={{ listStyleType: "none", padding: 0 }}>
-        {livrosFiltrados.map((livro) => (
-          <li
-            key={livro.id}
-            style={{
-              padding: "10px",
-              marginBottom: "8px",
-              borderBottom: "1px solid #ddd",
-            }}
-          >
-            <strong>{livro.titulo}</strong> — {livro.autor} ({livro.ano}) |{" "}
-            {livro.genero} | {livro.lido ? "Read" : "To Read"}{" "}
-            <button onClick={() => abrirEdicao(livro)}>Edit</button>{" "}
-            <button onClick={() => excluir(livro)}>Remove</button>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
