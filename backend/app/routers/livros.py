@@ -2,7 +2,8 @@
 from app.database import SessionLocal
 from app.models.livro import Livro
 from app.schemas.livro import LivroCreate, LivroResponse, LivroUpdate
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/livros", tags=["Livros"])
@@ -16,7 +17,19 @@ def get_db():
         db.close()
 
 
-@router.post("/")
+def obter_livro_ou_erro(id: int, db: Session) -> Livro:
+    livro = db.query(Livro).filter(Livro.id == id).first()
+
+    if livro is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Livro não encontrado",
+        )
+
+    return livro
+
+
+@router.post("/", response_model=LivroResponse, status_code=status.HTTP_201_CREATED)
 def criar_livro(livro: LivroCreate, db: Session = Depends(get_db)):
     novo_livro = Livro(
         titulo=livro.titulo,
@@ -26,23 +39,26 @@ def criar_livro(livro: LivroCreate, db: Session = Depends(get_db)):
         lido=livro.lido,
     )
 
-    db.add(novo_livro)
-    db.commit()
-    db.refresh(novo_livro)
+    try:
+        db.add(novo_livro)
+        db.commit()
+        db.refresh(novo_livro)
+        return novo_livro
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao cadastrar livro",
+        ) from None
 
-    return novo_livro
 
-
-@router.put("/{id}")
+@router.put("/{id}", response_model=LivroResponse)
 def atualizar_livro(
     id: int,
     livro: LivroUpdate,
     db: Session = Depends(get_db),
 ):
-    livro_db = db.query(Livro).filter(Livro.id == id).first()
-
-    if livro_db is None:
-        raise HTTPException(status_code=404, detail="Livro não encontrado")
+    livro_db = obter_livro_ou_erro(id, db)
 
     livro_db.titulo = livro.titulo
     livro_db.autor = livro.autor
@@ -50,10 +66,16 @@ def atualizar_livro(
     livro_db.ano = livro.ano
     livro_db.lido = livro.lido
 
-    db.commit()
-    db.refresh(livro_db)
-
-    return livro_db
+    try:
+        db.commit()
+        db.refresh(livro_db)
+        return livro_db
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao atualizar livro",
+        ) from None
 
 
 @router.get("/", response_model=list[LivroResponse])
@@ -75,15 +97,18 @@ def listar_livros(
 
 @router.delete("/{id}")
 def excluir_livro(id: int, db: Session = Depends(get_db)):
-    livro_db = db.query(Livro).filter(Livro.id == id).first()
+    livro_db = obter_livro_ou_erro(id, db)
 
-    if livro_db is None:
-        raise HTTPException(status_code=404, detail="Livro não encontrado")
-
-    db.delete(livro_db)
-    db.commit()
-
-    return {"mensagem": "Livro excluído com sucesso"}
+    try:
+        db.delete(livro_db)
+        db.commit()
+        return {"mensagem": "Livro excluído com sucesso"}
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao excluir livro",
+        ) from None
 
 
 @router.get("/resumo")
@@ -93,7 +118,7 @@ def obter_resumo_livros(db: Session = Depends(get_db)):
     livros_pendentes = total_livros - livros_lidos
 
     percentual_lido = (
-        round((livros_lidos / total_livros * 100), 2)
+        round(livros_lidos / total_livros * 100, 2)
         if total_livros > 0
         else 0.0
     )
@@ -108,9 +133,4 @@ def obter_resumo_livros(db: Session = Depends(get_db)):
 
 @router.get("/{id}", response_model=LivroResponse)
 def buscar_livro(id: int, db: Session = Depends(get_db)):
-    livro_db = db.query(Livro).filter(Livro.id == id).first()
-
-    if livro_db is None:
-        raise HTTPException(status_code=404, detail="Livro não encontrado")
-
-    return livro_db
+    return obter_livro_ou_erro(id, db)
