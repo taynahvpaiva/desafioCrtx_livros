@@ -1,7 +1,7 @@
-from fastapi import FastAPI
-from app.database import Base,engine
+from app.database import Base, engine
 from app.models.livro import Livro
 from app.routers.livros import router
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)

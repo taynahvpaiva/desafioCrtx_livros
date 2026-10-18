@@ -1,10 +1,12 @@
-from fastapi import APIRouter,Depends,HTTPException
-from sqlalchemy.orm import Session
+
 from app.database import SessionLocal
 from app.models.livro import Livro
-from app.schemas.livro import LivroCreate,LivroUpdate,LivroResponse
+from app.schemas.livro import LivroCreate, LivroResponse, LivroUpdate
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/livros",tags=["Livros"])
+router = APIRouter(prefix="/livros", tags=["Livros"])
+
 
 def get_db():
     db = SessionLocal()
@@ -13,14 +15,15 @@ def get_db():
     finally:
         db.close()
 
+
 @router.post("/")
-def criar_livro(livro: LivroCreate,db: Session = Depends(get_db)):
+def criar_livro(livro: LivroCreate, db: Session = Depends(get_db)):
     novo_livro = Livro(
         titulo=livro.titulo,
         autor=livro.autor,
         genero=livro.genero,
         ano=livro.ano,
-        lido=livro.lido
+        lido=livro.lido,
     )
 
     db.add(novo_livro)
@@ -29,12 +32,17 @@ def criar_livro(livro: LivroCreate,db: Session = Depends(get_db)):
 
     return novo_livro
 
+
 @router.put("/{id}")
-def atualizar_livro(id: int,livro: LivroUpdate,db: Session = Depends(get_db)):
+def atualizar_livro(
+    id: int,
+    livro: LivroUpdate,
+    db: Session = Depends(get_db),
+):
     livro_db = db.query(Livro).filter(Livro.id == id).first()
 
     if livro_db is None:
-        raise HTTPException(status_code=404,detail="Livro não encontrado")
+        raise HTTPException(status_code=404, detail="Livro não encontrado")
 
     livro_db.titulo = livro.titulo
     livro_db.autor = livro.autor
@@ -46,6 +54,7 @@ def atualizar_livro(id: int,livro: LivroUpdate,db: Session = Depends(get_db)):
     db.refresh(livro_db)
 
     return livro_db
+
 
 @router.get("/", response_model=list[LivroResponse])
 def listar_livros(
@@ -63,6 +72,7 @@ def listar_livros(
 
     return query.all()
 
+
 @router.delete("/{id}")
 def excluir_livro(id: int, db: Session = Depends(get_db)):
     livro_db = db.query(Livro).filter(Livro.id == id).first()
@@ -75,20 +85,26 @@ def excluir_livro(id: int, db: Session = Depends(get_db)):
 
     return {"mensagem": "Livro excluído com sucesso"}
 
+
 @router.get("/resumo")
 def obter_resumo_livros(db: Session = Depends(get_db)):
     total_livros = db.query(Livro).count()
-    livros_lidos = db.query(Livro).filter(Livro.lido == True).count()
+    livros_lidos = db.query(Livro).filter(Livro.lido).count()
     livros_pendentes = total_livros - livros_lidos
-    
-    percentual_lido = round((livros_lidos / total_livros * 100), 2) if total_livros > 0 else 0.0
+
+    percentual_lido = (
+        round((livros_lidos / total_livros * 100), 2)
+        if total_livros > 0
+        else 0.0
+    )
 
     return {
         "total_livros": total_livros,
         "livros_lidos": livros_lidos,
         "livros_pendentes": livros_pendentes,
-        "percentual_concluido": f"{percentual_lido}%"
+        "percentual_concluido": f"{percentual_lido}%",
     }
+
 
 @router.get("/{id}", response_model=LivroResponse)
 def buscar_livro(id: int, db: Session = Depends(get_db)):

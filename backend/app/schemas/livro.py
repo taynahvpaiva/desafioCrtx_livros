@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
+
 class LivroCreate(BaseModel):
     titulo: str
     autor: str
