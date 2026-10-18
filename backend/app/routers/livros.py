@@ -18,7 +18,13 @@ def get_db():
 
 
 def obter_livro_ou_erro(id: int, db: Session) -> Livro:
-    livro = db.query(Livro).filter(Livro.id == id).first()
+    try:
+        livro = db.query(Livro).filter(Livro.id == id).first()
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao consultar livro",
+        ) from None
 
     if livro is None:
         raise HTTPException(
@@ -60,13 +66,13 @@ def atualizar_livro(
 ):
     livro_db = obter_livro_ou_erro(id, db)
 
-    livro_db.titulo = livro.titulo
-    livro_db.autor = livro.autor
-    livro_db.genero = livro.genero
-    livro_db.ano = livro.ano
-    livro_db.lido = livro.lido
-
     try:
+        livro_db.titulo = livro.titulo
+        livro_db.autor = livro.autor
+        livro_db.genero = livro.genero
+        livro_db.ano = livro.ano
+        livro_db.lido = livro.lido
+
         db.commit()
         db.refresh(livro_db)
         return livro_db
@@ -84,15 +90,21 @@ def listar_livros(
     autor: str | None = None,
     db: Session = Depends(get_db),
 ):
-    query = db.query(Livro)
+    try:
+        query = db.query(Livro)
 
-    if genero:
-        query = query.filter(Livro.genero.ilike(f"%{genero}%"))
+        if genero:
+            query = query.filter(Livro.genero.ilike(f"%{genero}%"))
 
-    if autor:
-        query = query.filter(Livro.autor.ilike(f"%{autor}%"))
+        if autor:
+            query = query.filter(Livro.autor.ilike(f"%{autor}%"))
 
-    return query.all()
+        return query.all()
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao listar livros",
+        ) from None
 
 
 @router.delete("/{id}")
@@ -113,22 +125,28 @@ def excluir_livro(id: int, db: Session = Depends(get_db)):
 
 @router.get("/resumo")
 def obter_resumo_livros(db: Session = Depends(get_db)):
-    total_livros = db.query(Livro).count()
-    livros_lidos = db.query(Livro).filter(Livro.lido).count()
-    livros_pendentes = total_livros - livros_lidos
+    try:
+        total_livros = db.query(Livro).count()
+        livros_lidos = db.query(Livro).filter(Livro.lido).count()
+        livros_pendentes = total_livros - livros_lidos
 
-    percentual_lido = (
-        round(livros_lidos / total_livros * 100, 2)
-        if total_livros > 0
-        else 0.0
-    )
+        percentual_lido = (
+            round(livros_lidos / total_livros * 100, 2)
+            if total_livros > 0
+            else 0.0
+        )
 
-    return {
-        "total_livros": total_livros,
-        "livros_lidos": livros_lidos,
-        "livros_pendentes": livros_pendentes,
-        "percentual_concluido": f"{percentual_lido}%",
-    }
+        return {
+            "total_livros": total_livros,
+            "livros_lidos": livros_lidos,
+            "livros_pendentes": livros_pendentes,
+            "percentual_concluido": f"{percentual_lido}%",
+        }
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao gerar resumo dos livros",
+        ) from None
 
 
 @router.get("/{id}", response_model=LivroResponse)
