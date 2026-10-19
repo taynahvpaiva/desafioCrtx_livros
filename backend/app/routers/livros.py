@@ -1,10 +1,13 @@
-from fastapi import APIRouter,Depends,HTTPException
-from sqlalchemy.orm import Session
+
 from app.database import SessionLocal
 from app.models.livro import Livro
-from app.schemas.livro import LivroCreate,LivroUpdate,LivroResponse
+from app.schemas.livro import LivroCreate, LivroResponse, LivroUpdate
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/livros",tags=["Livros"])
+router = APIRouter(prefix="/livros", tags=["Livros"])
+
 
 def get_db():
     db = SessionLocal()
@@ -13,39 +16,73 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/")
-def criar_livro(livro: LivroCreate,db: Session = Depends(get_db)):
+
+def obter_livro_ou_erro(id: int, db: Session) -> Livro:
+    try:
+        livro = db.query(Livro).filter(Livro.id == id).first()
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao consultar livro",
+        ) from None
+
+    if livro is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Livro não encontrado",
+        )
+
+    return livro
+
+
+@router.post("/", response_model=LivroResponse, status_code=status.HTTP_201_CREATED)
+def criar_livro(livro: LivroCreate, db: Session = Depends(get_db)):
     novo_livro = Livro(
         titulo=livro.titulo,
         autor=livro.autor,
         genero=livro.genero,
         ano=livro.ano,
-        lido=livro.lido
+        lido=livro.lido,
     )
 
-    db.add(novo_livro)
-    db.commit()
-    db.refresh(novo_livro)
+    try:
+        db.add(novo_livro)
+        db.commit()
+        db.refresh(novo_livro)
+        return novo_livro
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao cadastrar livro",
+        ) from None
 
-    return novo_livro
 
-@router.put("/{id}")
-def atualizar_livro(id: int,livro: LivroUpdate,db: Session = Depends(get_db)):
-    livro_db = db.query(Livro).filter(Livro.id == id).first()
+@router.put("/{id}", response_model=LivroResponse)
+def atualizar_livro(
+    id: int,
+    livro: LivroUpdate,
+    db: Session = Depends(get_db),
+):
+    livro_db = obter_livro_ou_erro(id, db)
 
-    if livro_db is None:
-        raise HTTPException(status_code=404,detail="Livro não encontrado")
+    try:
+        livro_db.titulo = livro.titulo
+        livro_db.autor = livro.autor
+        livro_db.genero = livro.genero
+        livro_db.ano = livro.ano
+        livro_db.lido = livro.lido
 
-    livro_db.titulo = livro.titulo
-    livro_db.autor = livro.autor
-    livro_db.genero = livro.genero
-    livro_db.ano = livro.ano
-    livro_db.lido = livro.lido
+        db.commit()
+        db.refresh(livro_db)
+        return livro_db
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao atualizar livro",
+        ) from None
 
-    db.commit()
-    db.refresh(livro_db)
-
-    return livro_db
 
 @router.get("/", response_model=list[LivroResponse])
 def listar_livros(
@@ -53,48 +90,65 @@ def listar_livros(
     autor: str | None = None,
     db: Session = Depends(get_db),
 ):
-    query = db.query(Livro)
+    try:
+        query = db.query(Livro)
 
-    if genero:
-        query = query.filter(Livro.genero.ilike(f"%{genero}%"))
+        if genero:
+            query = query.filter(Livro.genero.ilike(f"%{genero}%"))
 
-    if autor:
-        query = query.filter(Livro.autor.ilike(f"%{autor}%"))
+        if autor:
+            query = query.filter(Livro.autor.ilike(f"%{autor}%"))
 
-    return query.all()
+        return query.all()
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao listar livros",
+        ) from None
+
 
 @router.delete("/{id}")
 def excluir_livro(id: int, db: Session = Depends(get_db)):
-    livro_db = db.query(Livro).filter(Livro.id == id).first()
+    livro_db = obter_livro_ou_erro(id, db)
 
-    if livro_db is None:
-        raise HTTPException(status_code=404, detail="Livro não encontrado")
+    try:
+        db.delete(livro_db)
+        db.commit()
+        return {"mensagem": "Livro excluído com sucesso"}
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao excluir livro",
+        ) from None
 
-    db.delete(livro_db)
-    db.commit()
-
-    return {"mensagem": "Livro excluído com sucesso"}
 
 @router.get("/resumo")
 def obter_resumo_livros(db: Session = Depends(get_db)):
-    total_livros = db.query(Livro).count()
-    livros_lidos = db.query(Livro).filter(Livro.lido == True).count()
-    livros_pendentes = total_livros - livros_lidos
-    
-    percentual_lido = round((livros_lidos / total_livros * 100), 2) if total_livros > 0 else 0.0
+    try:
+        total_livros = db.query(Livro).count()
+        livros_lidos = db.query(Livro).filter(Livro.lido).count()
+        livros_pendentes = total_livros - livros_lidos
 
-    return {
-        "total_livros": total_livros,
-        "livros_lidos": livros_lidos,
-        "livros_pendentes": livros_pendentes,
-        "percentual_concluido": f"{percentual_lido}%"
-    }
+        percentual_lido = (
+            round(livros_lidos / total_livros * 100, 2)
+            if total_livros > 0
+            else 0.0
+        )
+
+        return {
+            "total_livros": total_livros,
+            "livros_lidos": livros_lidos,
+            "livros_pendentes": livros_pendentes,
+            "percentual_concluido": f"{percentual_lido}%",
+        }
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao gerar resumo dos livros",
+        ) from None
+
 
 @router.get("/{id}", response_model=LivroResponse)
 def buscar_livro(id: int, db: Session = Depends(get_db)):
-    livro_db = db.query(Livro).filter(Livro.id == id).first()
-
-    if livro_db is None:
-        raise HTTPException(status_code=404, detail="Livro não encontrado")
-
-    return livro_db
+    return obter_livro_ou_erro(id, db)
